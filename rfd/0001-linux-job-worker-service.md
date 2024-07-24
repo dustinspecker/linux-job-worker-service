@@ -309,7 +309,7 @@ the desired command.
 
 `Start` will return an error if the `Job` was provided a `JobConfig` with zero values for any of the fields, except `Arguments`.
 
-The configured `exec.Cmd` will isolate the process by setting clone and share flags for creating new mount, pid, and network namespaces.
+The configured `exec.Cmd` will isolate the process by setting clone and unshare flags for creating new mount, pid, and network namespaces.
 
 `Start` will also create a new cgroup for the job and set the CPU, memory, and IO limits. It will be up to the `jobExecutorPath` to append the PID to the cgroup's `cgroup.procs` file as described above.
 
