@@ -197,6 +197,8 @@ A client/user may not interact with a job not created by them in any way. No que
 
 #### Protobuf
 
+The proposed protobuf file for the client/server is as follows:
+
 ```proto
 syntax = "proto3";
 
