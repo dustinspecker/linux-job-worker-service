@@ -330,6 +330,7 @@ The configured `exec.Cmd` will isolate the process by setting clone and unshare 
 The configured `exec.Cmd` will execute `jobExecutorPath`. It is expected that `jobExecutorPath` is a binary that will do the following:
 
 - append the PID to the provided `cgroup.procs` file
+   - This might end up being handled by [UseCgroupFD and CgroupFD](https://pkg.go.dev/syscall#SysProcAttr), which removes the need to provide a path to `cgroup.procs`
 - mount a new proc filesystem
 - execute the provided `command` and `arguments`
 
