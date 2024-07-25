@@ -280,10 +280,17 @@ type JobConfig struct {
 }
 ```
 
-`JobConfig` holds configuration for creating a new job. The fields are described in [New](#func-newconfig-jobconfig-job).
+`JobConfig` holds configuration for creating a new job.
 
 All fields are required to be a non-zero value except `Arguments` to be able to successfully invoke [Job.Start](func-job-start-error).
 `Job.Start` will return an error if any of the fields are zero values.
+
+- `JobExecutorPath` is the path to the binary that will execute the provided `Command` and `Arguments`. It is expected that the binary will add the new process's PID to the cgroup's `cgroup.procs` file.
+- `CPU` is a decimal representing an approximate number of CPU cores to limit the job to. For example, `0.5` would translate to half a CPU core. This is configured by setting `cpu.max` as `500000 1000000` in the cgroup for the process.
+- `MemBytes` is the maximum amount of memory to be used by the job. This is configured by setting `memory.max` in the cgroup for the process using the same number provided.
+- `IOBytesPerSecond` is the maximum read and write on the device mounted `/` is mounted on. This is configured by setting `io.max` in the cgroup for the process. For example, a `IOBytesPerSecond` of `1000000000` would be similar to `259:1 rbps=1000000000 wbps=1000000000 riops=max wiops=max` in the cgroup's `io.max` file.
+- `Command` is the command to execute. For example, `/bin/bash`.
+- `Arguments` are the arguments to pass to the command. For example, `[]string{"-c", "echo hello"}` would be provided to command and ultimately run similar to `/bin/bash -c "echo hello"`.
 
 ##### func New(config JobConfig) *Job
 
@@ -313,7 +320,7 @@ the desired command.
 
 The configured `exec.Cmd` will isolate the process by setting clone and unshare flags for creating new mount, pid, and network namespaces.
 
-`Start` will also create a new cgroup for the job and set the CPU, memory, and IO limits. It will be up to the `jobExecutorPath` to append the PID to the cgroup's `cgroup.procs` file as described above.
+`Start` will also create a new cgroup for the job and set the CPU, memory, and IO limits. The cgroup files used to configure these resource limits are discussed in [JobConfig](#type-jobconfig). It will be up to the `jobExecutorPath` to append the PID to the cgroup's `cgroup.procs` file as described above.
 
 The configured `exec.Cmd` will execute `jobExecutorPath`. It is expected that `jobExecutorPath` is a binary that will do the following:
 
