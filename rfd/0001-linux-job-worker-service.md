@@ -310,7 +310,10 @@ It is expected that `JobExecutorPath` will add the pid of the process to the cgr
 > as `JobExecutorPath`.
 
 The `JobExecutorPath` may seem odd, but this enables a "hook" to add the new process's PID to the cgroup before actually executing
-the desired command.
+the desired command and mounting a new `proc` file system.
+
+> Note: `Job.Start` might be able to configure [UseCgroupFD and CgroupFD](https://pkg.go.dev/syscall#SysProcAttr) so
+> the binary doesn't have to add the PID to the cgroup's `cgroup.procs` file.
 
 ##### func (*Job) Start() error
 
