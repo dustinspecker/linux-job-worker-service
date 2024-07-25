@@ -315,6 +315,8 @@ the desired command and mounting a new `proc` file system.
 > Note: `Job.Start` might be able to configure [UseCgroupFD and CgroupFD](https://pkg.go.dev/syscall#SysProcAttr) so
 > the binary doesn't have to add the PID to the cgroup's `cgroup.procs` file.
 
+The library should provide an exported function(s) that can mount and unmount a new proc file system.
+
 ##### func (*Job) Start() error
 
 `Start` creates a configured [exec.Cmd](https://pkg.go.dev/os/exec#Cmd).
