@@ -333,7 +333,8 @@ The library should provide an exported function(s) that can mount and unmount a 
    - io is set by writing `259:1 rbps=<IOBytesPerSecond> wbps=<IOBytesPerSecond> riops=max wiops=max` to `/sys/fs/cgroup/<uuid>/tasks/io.max`
       - `259:1` is the major and minor number of the physical device that `/` is mounted on as an example. Need to look this up dynamically or provide it as a configuration option.
 1. configures a new [exec.Cmd](https://pkg.go.dev/os/exec#Cmd)
-   - sets clone and unshare flags for creating new mount, pid, and network namespaces
+   - sets clone flags for creating new mount, pid, and network namespaces
+   - sets unshare flags for mount so that new mounts are not reflected in host mount namespace
    - sets the command to be `JobExecutorPath` (its process is explained below) with additional arguments to run `JobExecutorPath` with the user's provided `Command` and `Arguments`
    - sets [UseCgroupFD and CgroupFD](https://pkg.go.dev/syscall#SysProcAttr) to the cgroup's file descriptor such as `/sys/fs/cgroup/<uuid>/tasks` (if design ends up not using `JobExecutorPath` to add the PID to the cgroup's `cgroup.procs` file)
 1. runs the configured `exec.Cmd` in a new goroutine
@@ -346,6 +347,7 @@ As described above, `Start`'s configured `exec.Cmd` will execute `jobExecutorPat
 1. append the PID to the provided `cgroup.procs` file
    - This might end up being handled by [UseCgroupFD and CgroupFD](https://pkg.go.dev/syscall#SysProcAttr), which removes the need to provide a path to `cgroup.procs`
    - If this is required, the pid can be found in `/proc/self/stat` before mounting a new proc filesystem
+1. create a new directory to mount a new proc filesystem such as `/tmp/proc-<uuid>`
 1. mount a new proc filesystem to limit the process's view of the host's processes
 1. execute the provided `command` and `arguments` using [exec.Cmd](https://pkg.go.dev/os/exec#Cmd), which forks and executes the command
    - This means that `jobExecutorPath` is PID 1, while the user's command is a child process of `jobExecutorPath`
