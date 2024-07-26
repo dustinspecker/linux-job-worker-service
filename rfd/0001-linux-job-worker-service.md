@@ -323,16 +323,34 @@ The library should provide an exported function(s) that can mount and unmount a 
 
 `Start` will return an error if the `Job` was provided a `JobConfig` with zero values for any of the fields, except `Arguments`.
 
-The configured `exec.Cmd` will isolate the process by setting clone and unshare flags for creating new mount, pid, and network namespaces.
+`Start` takes the following steps:
 
-`Start` will also create a new cgroup for the job and set the CPU, memory, and IO limits. The cgroup files used to configure these resource limits are discussed in [JobConfig](#type-jobconfig). It will be up to the `jobExecutorPath` to append the PID to the cgroup's `cgroup.procs` file as described above.
+1. creates a new cgroup for the job such as `/sys/fs/cgroup/<uuid>`
+1. enables subtrees to control resource limits by adding `+cpu +memory +io` to `/sys/fs/cgroup/<uuid>/cgroup.subtree_control` file
+1. sets the CPU, memory, and IO limits based on the `JobConfig`
+   - CPU is set by writing `500000 1000000` to `/sys/fs/cgroup/<uuid>/tasks/cpu.max`
+   - memory is set by writing the provided `MemBytes` to `/sys/fs/cgroup/<uuid>/tasks/memory.max`
+   - io is set by writing `259:1 rbps=<IOBytesPerSecond> wbps=<IOBytesPerSecond> riops=max wiops=max` to `/sys/fs/cgroup/<uuid>/tasks/io.max`
+      - `259:1` is the major and minor number of the physical device that `/` is mounted on as an example. Need to look this up dynamically or provide it as a configuration option.
+1. configures a new [exec.Cmd](https://pkg.go.dev/os/exec#Cmd)
+   - sets clone and unshare flags for creating new mount, pid, and network namespaces
+   - sets the command to be `JobExecutorPath` (its process is explained below) with additional arguments to run `JobExecutorPath` with the user's provided `Command` and `Arguments`
+   - sets [UseCgroupFD and CgroupFD](https://pkg.go.dev/syscall#SysProcAttr) to the cgroup's file descriptor such as `/sys/fs/cgroup/<uuid>/tasks` (if design ends up not using `JobExecutorPath` to add the PID to the cgroup's `cgroup.procs` file)
+1. runs the configured `exec.Cmd` in a new goroutine
+   - `exec.Cmd` will fork and execute `JobExecutorPath`
+   - does not wait for the command to complete
+   - the goroutine will stop when the process completes or is killed
 
-The configured `exec.Cmd` will execute `jobExecutorPath`. It is expected that `jobExecutorPath` is a binary that will do the following:
+As described above, `Start`'s configured `exec.Cmd` will execute `jobExecutorPath`. It is expected that `jobExecutorPath` is a binary that will do the following:
 
-- append the PID to the provided `cgroup.procs` file
+1. append the PID to the provided `cgroup.procs` file
    - This might end up being handled by [UseCgroupFD and CgroupFD](https://pkg.go.dev/syscall#SysProcAttr), which removes the need to provide a path to `cgroup.procs`
-- mount a new proc filesystem
-- execute the provided `command` and `arguments`
+   - If this is required, the pid can be found in `/proc/self/stat` before mounting a new proc filesystem
+1. mount a new proc filesystem to limit the process's view of the host's processes
+1. execute the provided `command` and `arguments` using [exec.Cmd](https://pkg.go.dev/os/exec#Cmd), which forks and executes the command
+   - This means that `jobExecutorPath` is PID 1, while the user's command is a child process of `jobExecutorPath`
+   - This also means that killing `jobExecutorPath` will kill all other spawned processes in the pid namespace
+   - In the future, if it's desired for the user's command to be PID 1, then `jobExecutorPath` should use [syscall.Exec](https://pkg.go.dev/syscall#Exec) for the user's command and arguments. And take careful steps to ensure signals are appropriately handled.
 
 The `jobExecutorPath` will be executed similar to:
 
