@@ -179,6 +179,41 @@ job <uuid> stopped
 
 The API is a gRPC service written in Golang. The API acts as a wrapper around the library to start, query, stream, and stop jobs.
 
+### How the server works
+
+#### Starting a new job
+
+When the server receives a request to start a new job, it will:
+1. create a new `Job` using the library
+1. generate an ID being a UUID v4
+   - Note: this UUID is completely separate from any UUID generated in the library for cgroup paths
+1. store the `Job` in a map with the job's UUID as the key, along with the user ID that created the job
+1. start the `Job`
+1. return the job's UUID to the client
+
+#### Querying a job's status
+
+When the server receives a request to query a job's status, it will:
+1. Look up the job in the map by the job's UUID
+1. Return the job's status to the client
+
+#### Streaming a job's output
+
+When the server receives a request to stream a job's output, it will:
+1. Look up the job in the map by the job's UUID
+1. Invoke the `Stream` function on the `Job` using the library
+1. Send the output to the client as it is received
+
+#### Stopping a job
+
+When the server receives a request to stop a job, it will:
+1. Look up the job in the map by the job's UUID
+1. Invoke the `Stop` function on the `Job` using the library
+
+The server does nothing else to clean up jobs. The user may ask for the job's output or status after the job has been stopped.
+
+A future enhancement could be added to the server/API to remove a job from the map after it has been stopped.
+
 #### Security
 
 The client and API communicate via mTLS using TLS 1.3 as the minimum version. The following cipher suites are supported:
