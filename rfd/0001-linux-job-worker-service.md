@@ -285,7 +285,7 @@ type JobConfig struct {
 All fields are required to be a non-zero value except `Arguments` to be able to successfully invoke [Job.Start](func-job-start-error).
 `Job.Start` will return an error if any of the fields are zero values.
 
-- `JobExecutorPath` is the path to the binary that will execute the provided `Command` and `Arguments`. It is expected that the binary will add the new process's PID to the cgroup's `cgroup.procs` file.
+- `JobExecutorPath` is the path to the binary that will execute the provided `Command` and `Arguments`. It is expected that the binary will mount a new proc filesystem and then fork+execute the user's command with any arguments.
 - `CPU` is a decimal representing an approximate number of CPU cores to limit the job to. For example, `0.5` would translate to half a CPU core. This is configured by setting `cpu.max` as `500000 1000000` in the cgroup for the process.
 - `MemBytes` is the maximum amount of memory to be used by the job. This is configured by setting `memory.max` in the cgroup for the process using the same number provided.
 - `IOBytesPerSecond` is the maximum read and write on the device mounted `/` is mounted on. This is configured by setting `io.max` in the cgroup for the process. For example, a `IOBytesPerSecond` of `1000000000` would be similar to `259:1 rbps=1000000000 wbps=1000000000 riops=max wiops=max` in the cgroup's `io.max` file.
@@ -299,21 +299,17 @@ All fields are required to be a non-zero value except `Arguments` to be able to 
 It is expected that the config's `JobExecutorPath` is a binary that will execute the provided `Command` and `Arguments` similar to:
 
 ```bash
-<JobExecutorPath> run /sys/fs/cgroup/<uuid>/tasks/cgroup.procs <Command> <Arguments>
+<JobExecutorPath> run <Command> <Arguments>
 ```
 
-It is expected that `JobExecutorPath` will add the pid of the process to the cgroup within `/sys/fs/cgroup/<uuid>/tasks/cgroup.procs`.
+It is expected that `JobExecutorPath` will mount a new proc filesystem and then fork+execute the user's command with any arguments.
 
 > Note: `JobExecutorPath` may be a new binary entirely created from this design for the library to use. Eventually, it may make more
 > sense for the server binary to be a compatible `JobExecutorPath` that the library uses. This way to deploy the server requires only the one
 > server binary instead of the server binary and the `JobExecutorPath` binary. The server could provide `/proc/self/exe` to the library
 > as `JobExecutorPath`.
 
-The `JobExecutorPath` may seem odd, but this enables a "hook" to add the new process's PID to the cgroup before actually executing
-the desired command and mounting a new `proc` file system.
-
-> Note: `Job.Start` might be able to configure [UseCgroupFD and CgroupFD](https://pkg.go.dev/syscall#SysProcAttr) so
-> the binary doesn't have to add the PID to the cgroup's `cgroup.procs` file.
+The `JobExecutorPath` may seem odd, but this enables a "hook" to create and mount a new proc filesystem before forking + executing the desired command with any arguments.
 
 The library should provide an exported function(s) that can mount and unmount a new proc file system.
 
@@ -336,7 +332,7 @@ The library should provide an exported function(s) that can mount and unmount a 
    - sets clone flags for creating new mount, pid, and network namespaces
    - sets unshare flags for mount so that new mounts are not reflected in host mount namespace
    - sets the command to be `JobExecutorPath` (its process is explained below) with additional arguments to run `JobExecutorPath` with the user's provided `Command` and `Arguments`
-   - sets [UseCgroupFD and CgroupFD](https://pkg.go.dev/syscall#SysProcAttr) to the cgroup's file descriptor such as `/sys/fs/cgroup/<uuid>/tasks` (if design ends up not using `JobExecutorPath` to add the PID to the cgroup's `cgroup.procs` file)
+   - sets [UseCgroupFD and CgroupFD](https://pkg.go.dev/syscall#SysProcAttr) to the cgroup's file descriptor such as `/sys/fs/cgroup/<uuid>/tasks`
 1. runs the configured `exec.Cmd` in a new goroutine
    - `exec.Cmd` will fork and execute `JobExecutorPath`
    - does not wait for the command to complete
@@ -344,9 +340,6 @@ The library should provide an exported function(s) that can mount and unmount a 
 
 As described above, `Start`'s configured `exec.Cmd` will execute `jobExecutorPath`. It is expected that `jobExecutorPath` is a binary that will do the following:
 
-1. append the PID to the provided `cgroup.procs` file
-   - This might end up being handled by [UseCgroupFD and CgroupFD](https://pkg.go.dev/syscall#SysProcAttr), which removes the need to provide a path to `cgroup.procs`
-   - If this is required, the pid can be found in `/proc/self/stat` before mounting a new proc filesystem
 1. create a new directory to mount a new proc filesystem such as `/tmp/proc-<uuid>`
 1. mount a new proc filesystem to limit the process's view of the host's processes
 1. execute the provided `command` and `arguments` using [exec.Cmd](https://pkg.go.dev/os/exec#Cmd), which forks and executes the command
@@ -357,7 +350,7 @@ As described above, `Start`'s configured `exec.Cmd` will execute `jobExecutorPat
 The `jobExecutorPath` will be executed similar to:
 
 ```bash
-<jobExecutorPath> run /sys/fs/cgroup/<uuid>/tasks/cgroup.procs <command> <arguments>
+<jobExecutorPath> run <command> <arguments>
 ```
 
 Finally, `Start` runs the configured `exec.Cmd` in a new goroutine. `Start` does not wait for the command to complete. The goroutine will stop when the process completes or is killed. Once the process is completed (regardless of success), then the cgroups will be removed.
