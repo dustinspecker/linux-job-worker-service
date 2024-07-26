@@ -373,7 +373,10 @@ It is okay to call `Stream` on a job that has not been started. The channel will
 
 ##### func (*Job) Stop() error
 
-`Stop` will kill the process.
+`Stop` will kill the process by sending a SIGKILL signal to the process via [exec.Cmd.Process.Kill](https://pkg.go.dev/os/exec#Cmd.Process).
+
+> Note: a future enhancement could be to send a SIGTERM signal first and then a SIGKILL signal after a timeout if the process has not terminated. This would allow the process to gracefully shutdown if it can.
+> As part of this, `JobExecutorPath` would need to handle SIGTERM signals and forward them to the user's command.
 
 Since the process is PID 1 in the new pid namespace, killing it will kill all other spawned process in the pid namespace.
 
