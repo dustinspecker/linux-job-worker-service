@@ -408,15 +408,15 @@ It is an error to invoke `Start` on a `Job` that has already been started regard
 
 `Status` returns the current status of the job. Refer to [JobStatus](#type-jobstatus) for more information.
 
-##### func (*Job) Stream(context.Context) <-chan []byte
+##### func (*Job) Stream() OutputReader
 
-`Stream` returns a channel of the process's stdout and stderr output combined as it runs.
+`Stream` returns an `OutputReader`. An `OutputReader` is a type that implements [io.Reader](https://pkg.go.dev/io#Reader). OutputReader is described in [OutputReader](#outputreader).
 
-Once the process has completed or terminated, the channel will be closed. Additionally, if the context is canceled, the channel will be closed.
+`OutputReader` enables a user to read the combined output of the process's stdout and stderr as it runs. `OutputReader` is able to read the process's entire output from when it started to the current output.
 
 It is okay to call `Stream` for a job that has already been completed.
 
-It is okay to call `Stream` on a job that has not been started. The channel will remain open until the context is canceled or the job is eventually completed.
+It is okay to call `Stream` on a job that has not been started.
 
 ##### func (*Job) Stop() error
 
@@ -451,28 +451,48 @@ Exit reason is populated with the error message returned by `exec.Cmd.Run` if th
 The API needs to be able to stream the process's output to multiple clients concurrently. Each client should receive the output
 from the start of the process regardless of when the client began streaming.
 
-The Job's `Stream` function will return a channel of the process's output. The Job needs to be able to identify in a performant
+The Job's `Stream` function will return an `OutputReader` of the process's output. The Job needs to be able to identify in a performant
 manner when new output has been written and send that to each client.
 
 #### Proposed solution
 
 **Assume that the server has enough memory to hold all running jobs' stdout and stderr in memory.**
 
-A new type can be created that implements [io.Writer](https://pkg.go.dev/io#Writer) and [io.Closer](https://pkg.go.dev/io#Closer). This new type should be able to support multiple writers (a process's stdout and stderr) and multiple readers (multiple clients streaming the output).
+Two more types are being proposed.
 
-This new type will be provided as the job's stdout and stderr. This new type will then be closed by the job once the process has completed or been killed.
+1. `Output` to handle concurrent writes (a process's stdout and stderr) and reads (multiple clients reading/streaming the output).
 
-This new type can store all process output in a `[]byte`. Consider a mutex to handle concurrent read/writes.
+1. `OutputReader` to handle reading the process's output as it's written to `Output`.
 
-The Job's `Stream` function will invoke this new type's `Stream` function. A new goroutine should be created per client that reads from the new type. The goroutine will track the last byte read and send all new bytes to the client. The goroutine should finish when
-this new type is closed and all bytes have been read or a provided context is canceled.
-
-To performantly know when new bytes have been added to the underlying content, consider using a
-[sync.Cond](https://pkg.go.dev/sync#Cond) to broadcast when new bytes have been written to the new type, so that each goroutine
-waiting for new bytes can be woken up to send the new bytes to their respective client.
-
-This new type should know nothing about the library, API, or client. This new type should not be treated as public and should exist
+`Output` and `OutputReader` should know nothing about the library, API, or client. These new types should not be treated as public and should exist
 within an `internal` directory to prevent any imports outside of this repository.
+
+##### Output
+
+Create a new type named `Output` that implements [io.Writer](https://pkg.go.dev/io#Writer), [io.ReaderAt](https://pkg.go.dev/io#ReaderAt), and [io.Closer](https://pkg.go.dev/io#Closer). This new type should be able to support multiple writers (a process's stdout and stderr) and multiple readers (multiple clients reading/streaming the output).
+
+A single `Output` will be provided as the job's stdout and stderr. `Output` will then be closed by the job once the process has completed or been killed.
+
+`Output` can store all process output in a `[]byte`. Consider a mutex to handle concurrent read/writes.
+
+#### OutputReader
+
+The Job's `Stream` function will create a new `OutputReader` per invocation that is provided the Job's `Output`.
+
+`OutputReader` will implement [io.Reader](https://pkg.go.dev/io#Reader). `OutputReader`'s `Read` will invoke the underlying `Output`'s `ReadAt` to read the next bytes.
+
+The above handles reading existing output, but this solution also needs to handle new output being written to the `Output` while clients are streaming.
+
+`OutputReader` does not need to safe for concurrent usage. Job's `Stream` will create a new `OutputReader` per invocation. It is up to the user of `OutputReader` to handle concurrent usage, if needed.
+
+##### Enable OutputReader to Detect changes to Output's content
+
+To performantly know when new bytes have been added to `Output`'s underlying content, consider using a
+[sync.Cond](https://pkg.go.dev/sync#Cond) to broadcast when new bytes have been written to `Output`'s content.
+
+`Output` should broadcast when new bytes have been written or the `Output` has been closed.
+
+`OutputReader`'s `Read` should wait for the broadcast to read new bytes until receiving an [io.EOF](https://pkg.go.dev/io#pkg-variables).
 
 ### Test Plan
 
