@@ -230,6 +230,12 @@ The API treats the client's common name (CN) in the certificate as the user's id
 
 A client/user may not interact with a job not created by them in any way. No querying, streaming, or stopping of another user's job is allowed.
 
+Each handler may retrieve the user's identity by:
+
+1. extracting the peer from the context
+1. extracting the certificate from the peer's auth information
+1. looking up the common name in the certificate
+
 #### Protobuf
 
 The proposed protobuf file for the client/server is as follows:
