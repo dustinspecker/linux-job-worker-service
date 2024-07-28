@@ -181,6 +181,9 @@ The API is a gRPC service written in Golang. The API acts as a wrapper around th
 
 ### How the server works
 
+Note: gRPC handlers each run in their own goroutine. Out of the box, this enables the server to support concurrent requests.
+The handlers must be safe for concurrent use, such as using a [sync.Map](https://pkg.go.dev/sync#Map) to store jobs.
+
 #### Starting a new job
 
 When the server receives a request to start a new job, it will:
@@ -285,6 +288,9 @@ A library written in Golang supports running an arbitrary Linux process in isola
 
 This library should know nothing about the client or API. It should be able to be used in any Golang program and treated as
 a public library.
+
+Jobs should be safe for concurrent use. Consider a mutex to handle concurrent changes to job's state such as stop being invoked
+multiple times concurrently.
 
 #### Process isolation
 
