@@ -482,3 +482,6 @@ Create a few end-to-end tests to verify some behaviors like:
 1. Demonstrate starting a job, streaming the job output, and validating the stream completes when the process completes.
 1. Demonstrate a user may not interact with another user's job.
 1. Demonstrate a job may not make network requests.
+1. Demonstrate cgroups' limits are being enforced by running commands such as:
+   - `dd if=/dev/zero of=/tmp/test bs=512M count=1` to verify io.max
+   - `sha1sum /dev/random` to verify cpu.limit
