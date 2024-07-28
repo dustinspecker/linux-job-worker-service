@@ -483,5 +483,5 @@ Create a few end-to-end tests to verify some behaviors like:
 1. Demonstrate a user may not interact with another user's job.
 1. Demonstrate a job may not make network requests.
 1. Demonstrate cgroups' limits are being enforced by running commands such as:
-   - `dd if=/dev/zero of=/tmp/test bs=512M count=1` to verify io.max
-   - `sha1sum /dev/random` to verify cpu.limit
+   - `dd if=/dev/zero of=/tmp/test bs=512M count=1` to verify io.max (`dd` outputs rough approximations of read and write speeds)
+   - `sha1sum /dev/random` to verify cpu.limit (while it's running, can use something like `ps -p $(pgrep sha1sum) -o %cpu` to verify CPU usage)
