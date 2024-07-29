@@ -360,8 +360,11 @@ It is expected that `JobExecutorPath` will mount a new proc filesystem and then 
 > as `JobExecutorPath`.
 
 The `JobExecutorPath` may seem odd, but this enables a "hook" to create and mount a new proc filesystem before forking + executing the desired command with any arguments.
+This technique enables process execution within the newly created mount namespace to mount a new proc filesystem. Without the `JobExecutorPath`, if the user's command
+was executed directly, then the user's command would still use the host's proc filesystem.
 
-The library should provide an exported function(s) that can mount and unmount a new proc file system.
+The library should provide an exported function(s) that can mount and unmount a new proc file system. The library should also provide an exported function
+that can handle signals such as `SIGTERM` and send `SIGTERM` to the process it's running (user's command).
 
 ##### func (*Job) Start() error
 
