@@ -339,6 +339,9 @@ All fields are required to be a non-zero value except `Arguments` to be able to 
 - `Command` is the command to execute. For example, `/bin/bash`.
 - `Arguments` are the arguments to pass to the command. For example, `[]string{"-c", "echo hello"}` would be provided to command and ultimately run similar to `/bin/bash -c "echo hello"`.
 
+`JobExecutorPath` should handle `SIGTERM`. If `SIGTERM` is received, then `JobExecutorPath` should send `SIGTERM` to the process it's running (user's command).
+`JobExecutorPath` should wait for the child process to complete before exiting.
+
 ##### func New(config JobConfig) *Job
 
 `New` creates a new `Job`. No command is started until `Start` is invoked.
@@ -420,12 +423,13 @@ It is okay to call `Stream` on a job that has not been started.
 
 ##### func (*Job) Stop() error
 
-`Stop` will kill the process by sending a SIGKILL signal to the process via [exec.Cmd.Process.Kill](https://pkg.go.dev/os/exec#Cmd.Process).
+`Stop` will attempt to gracefully shutdown the process by sending a SIGTERM signal to the process via [exec.Cmd.Process.Signal](https://pkg.go.dev/os/exec#Cmd.Process).
 
-> Note: a future enhancement could be to send a SIGTERM signal first and then a SIGKILL signal after a timeout if the process has not terminated. This would allow the process to gracefully shutdown if it can.
-> As part of this, `JobExecutorPath` would need to handle SIGTERM signals and forward them to the user's command.
+It is expected that `JobExecutorPath` will handle SIGTERM and send SIGTERM to the process it's running (user's command).
 
-Since the process is PID 1 in the new pid namespace, killing it will kill all other spawned process in the pid namespace.
+If the process (`JobExecutorPath`) has not terminated after 10 seconds, then `Stop` will send a SIGKILL signal to the process via [exec.Cmd.Process.Kill](https://pkg.go.dev/os/exec#Cmd.Process).
+
+Since the process (`JobExecutorPath`) is PID 1 in the new pid namespace, killing it will kill all other spawned process in the pid namespace.
 
 `Stop` will do nothing if the process has already completed or been killed.
 
