@@ -182,7 +182,7 @@ The API is a gRPC service written in Golang. The API acts as a wrapper around th
 ### How the server works
 
 Note: gRPC handlers each run in their own goroutine. Out of the box, this enables the server to support concurrent requests.
-The handlers must be safe for concurrent use, such as using a [sync.Map](https://pkg.go.dev/sync#Map) to store jobs.
+The handlers must be safe for concurrent use, such as using a map with a mutex to store jobs.
 
 #### Starting a new job
 
