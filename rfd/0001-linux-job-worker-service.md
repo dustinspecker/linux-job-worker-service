@@ -390,7 +390,6 @@ The library should provide an exported function(s) that can mount and unmount a 
 
 As described above, `Start`'s configured `exec.Cmd` will execute `jobExecutorPath`. It is expected that `jobExecutorPath` is a binary that will do the following:
 
-1. create a new directory to mount a new proc filesystem such as `/tmp/proc-<uuid>`
 1. mount a new proc filesystem to limit the process's view of the host's processes
 1. execute the provided `command` and `arguments` using [exec.Cmd](https://pkg.go.dev/os/exec#Cmd), which forks and executes the command
    - This means that `jobExecutorPath` is PID 1, while the user's command is a child process of `jobExecutorPath`
