@@ -354,9 +354,9 @@ It is expected that the config's `JobExecutorPath` is a binary that will execute
 
 It is expected that `JobExecutorPath` will mount a new proc filesystem and then fork+execute the user's command with any arguments.
 
-> Note: `JobExecutorPath` may be a new binary entirely created from this design for the library to use. Eventually, it may make more
-> sense for the server binary to be a compatible `JobExecutorPath` that the library uses. This way to deploy the server requires only the one
-> server binary instead of the server binary and the `JobExecutorPath` binary. The server could provide `/proc/self/exe` to the library
+> Note: `JobExecutorPath` will be a new binary entirely created from this design for the library to use. Eventually, the server's binary
+> will be a compatible `JobExecutorPath` that the library can be instructed to use. This way to deploy the server requires only the one
+> server binary instead of the server binary and the `JobExecutorPath` binary. The server can then provide `/proc/self/exe` (itself) to the library
 > as `JobExecutorPath`.
 
 The `JobExecutorPath` may seem odd, but this enables a "hook" to create and mount a new proc filesystem before forking + executing the desired command with any arguments.
