@@ -17,13 +17,21 @@ lint:
 		--disable gosec \
 		--disable lll \
 		--disable mnd \
+		--disable stylecheck \
 		--enable-all \
 		./...
+
+test-integration: build
+	go test \
+		-race \
+		-shuffle on \
+		-test.v \
+		./test/integration/...
 
 test-unit:
 	go test \
 		-race \
 		-shuffle on \
-		./...
+		$(shell go list ./... | grep --invert integration)
 
-.PHONY: all build lint test-unit
+.PHONY: all build lint test-integration test-unit
