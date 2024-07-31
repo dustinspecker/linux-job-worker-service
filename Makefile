@@ -1,6 +1,9 @@
 .DEFAULT_GOAL := all
 
-all: test-unit
+all: test-unit build
+
+build:
+	go build -o bin/ ./...
 
 test-unit:
 	go test \
@@ -8,4 +11,4 @@ test-unit:
 		-shuffle on \
 		./...
 
-.PHONY: all test-unit
+.PHONY: all build test-unit

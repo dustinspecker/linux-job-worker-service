@@ -9,3 +9,9 @@
    ```bash
    make test-unit
    ```
+
+1. Build binaries via:
+
+   ```bash
+   make build
+   ```
