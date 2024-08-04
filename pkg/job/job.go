@@ -225,6 +225,7 @@ func (j *Job) Start() error {
 		// process state), and the user invokes Status().
 		processState, err := j.cmd.Process.Wait()
 		j.mutex.Lock()
+		defer j.mutex.Unlock()
 
 		j.processState = processState
 		if err != nil {
@@ -234,10 +235,7 @@ func (j *Job) Start() error {
 		if err == nil && !processState.Success() {
 			j.exitReason = errors.Join(j.exitReason, &exec.ExitError{ProcessState: processState})
 		}
-		j.mutex.Unlock()
 
-		j.mutex.Lock()
-		defer j.mutex.Unlock()
 		// close the output, so that any readers of the output know the process has exited and will no longer
 		// block waiting for new output
 		if err := j.output.Close(); err != nil {
