@@ -56,11 +56,12 @@ func (ob *Output) Write(newContent []byte) (int, error) {
 // ReadPartial copies content from the Output to buffer starting at the given offset.
 // ReadPartial is similar to io.ReaderAt but ReadPartial does not block if less bytes are available than requested.
 func (ob *Output) ReadPartial(buffer []byte, off int64) (int, error) {
-	if off > int64(len(ob.Content())) {
+	content := ob.Content()
+
+	if off > int64(len(content)) {
 		return 0, ErrOffsetOutsideContentBounds
 	}
 
-	content := ob.Content()
 	bytesCopied := copy(buffer, content[off:])
 
 	if bytesCopied+int(off) == len(content) && ob.Closed() {
