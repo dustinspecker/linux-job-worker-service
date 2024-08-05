@@ -16,7 +16,7 @@ var (
 
 // Output is a buffer that can be written to and read from
 // by multiple goroutines concurrently.
-// Output implements io.Closer, io.ReaderAt, and io.Writer.
+// Output implements io.Closer and io.Writer.
 // Output should not be created directly, but instead by calling NewOutput.
 type Output struct {
 	// content store the written data
