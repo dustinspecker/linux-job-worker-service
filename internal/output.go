@@ -53,20 +53,11 @@ func (ob *Output) Write(newContent []byte) (int, error) {
 	return len(newContent), nil
 }
 
-// ReadAt copies content from the Output to buffer starting at the given offset.
-// Note: as described in https://pkg.go.dev/io#ReaderAt,
-// ReadAt will block until the requested bytes are available or the Output is closed.
-func (ob *Output) ReadAt(buffer []byte, off int64) (int, error) {
+// ReadPartial copies content from the Output to buffer starting at the given offset.
+// ReadPartial is similar to io.ReaderAt but ReadPartial does not block if less bytes are available than requested.
+func (ob *Output) ReadPartial(buffer []byte, off int64) (int, error) {
 	if off > int64(len(ob.Content())) {
 		return 0, ErrOffsetOutsideContentBounds
-	}
-
-	// Block until the requested bytes are available or the Output is closed.
-	// As part of the io.ReaderAt interface, ReadAt should block until the requested bytes are available.
-	for !ob.Closed() && int64(len(ob.Content())) < int64(cap(buffer))+off {
-		ob.mutex.Lock()
-		ob.waitCondition.Wait()
-		ob.mutex.Unlock()
 	}
 
 	content := ob.Content()
@@ -77,6 +68,15 @@ func (ob *Output) ReadAt(buffer []byte, off int64) (int, error) {
 	}
 
 	return bytesCopied, nil
+}
+
+// Wait blocks until new content is written to the Output or the Output is closed.
+func (ob *Output) Wait(nextByteIndex int64) {
+	for !ob.Closed() && int64(len(ob.Content())) == nextByteIndex {
+		ob.mutex.Lock()
+		ob.waitCondition.Wait()
+		ob.mutex.Unlock()
+	}
 }
 
 // Content returns the content of the Output in a thread-safe way.

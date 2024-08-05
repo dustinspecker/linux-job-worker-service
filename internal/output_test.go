@@ -61,7 +61,7 @@ func TestOutputBufferReadAt(t *testing.T) {
 	// can read entire content
 	buffer := make([]byte, 15)
 
-	bytesRead, err := output.ReadAt(buffer, 0)
+	bytesRead, err := output.ReadPartial(buffer, 0)
 	if err == nil {
 		t.Fatal("Expected an EOF error to be returned when all content is read, got nil")
 	}
@@ -82,7 +82,7 @@ func TestOutputBufferReadAt(t *testing.T) {
 	// can read partial content and starting at offset
 	buffer = make([]byte, 5)
 
-	bytesRead, err = output.ReadAt(buffer, 2)
+	bytesRead, err = output.ReadPartial(buffer, 2)
 	if err != nil {
 		t.Fatalf("Expected no error calling ReadAt, got %v", err)
 	}
@@ -114,7 +114,7 @@ func TestReadAtReturnsEOFWhenClosed(t *testing.T) {
 
 	buffer := make([]byte, 5)
 
-	_, err = output.ReadAt(buffer, 0)
+	_, err = output.ReadPartial(buffer, 0)
 	if err == nil {
 		t.Fatalf("Expected error calling ReadAt, got nil")
 	}
@@ -148,7 +148,7 @@ func TestConcurrentReadWrites(t *testing.T) {
 
 			buffer := make([]byte, 1)
 
-			_, err := output.ReadAt(buffer, 0)
+			_, err := output.ReadPartial(buffer, 0)
 			if err != nil {
 				t.Errorf("Expected no error calling ReadAt, got %v", err)
 			}
@@ -204,7 +204,7 @@ func TestConcurrentWrites(t *testing.T) {
 
 	buffer := make([]byte, 101)
 
-	bytesRead, err := output.ReadAt(buffer, 0)
+	bytesRead, err := output.ReadPartial(buffer, 0)
 	if !errors.Is(err, io.EOF) {
 		t.Fatalf("Expected EOF, but got %v", err)
 	}
