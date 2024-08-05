@@ -125,12 +125,12 @@ func TestConcurrentReadWrites(t *testing.T) {
 
 	output := internal.NewOutput()
 
-	var waitGroup sync.WaitGroup
+	var writeGroups sync.WaitGroup
 	for range 10 {
-		waitGroup.Add(1)
+		writeGroups.Add(1)
 
 		go func() {
-			defer waitGroup.Done()
+			defer writeGroups.Done()
 
 			_, err := output.Write([]byte("hello"))
 			if err != nil {
@@ -139,11 +139,12 @@ func TestConcurrentReadWrites(t *testing.T) {
 		}()
 	}
 
+	var readGroups sync.WaitGroup
 	for range 10 {
-		waitGroup.Add(1)
+		readGroups.Add(1)
 
 		go func() {
-			defer waitGroup.Done()
+			defer readGroups.Done()
 
 			buffer := make([]byte, 1)
 
@@ -154,7 +155,13 @@ func TestConcurrentReadWrites(t *testing.T) {
 		}()
 	}
 
-	waitGroup.Wait()
+	writeGroups.Wait()
+
+	if err := output.Close(); err != nil {
+		t.Fatalf("Expected no error calling Close, got %v", err)
+	}
+
+	readGroups.Wait()
 }
 
 func TestConcurrentWrites(t *testing.T) {
@@ -191,11 +198,15 @@ func TestConcurrentWrites(t *testing.T) {
 
 	waitGroup.Wait()
 
+	if err := output.Close(); err != nil {
+		t.Fatalf("Expected no error calling Close, got %v", err)
+	}
+
 	buffer := make([]byte, 101)
 
 	bytesRead, err := output.ReadAt(buffer, 0)
-	if err != nil {
-		t.Fatalf("Expected no error calling ReadAt, got %v", err)
+	if !errors.Is(err, io.EOF) {
+		t.Fatalf("Expected EOF, but got %v", err)
 	}
 
 	if bytesRead != 100 {

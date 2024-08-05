@@ -2,7 +2,6 @@ package internal
 
 import (
 	"errors"
-	"io"
 )
 
 var ErrOutputMissing = errors.New("OutputReader's output is nil")
@@ -35,11 +34,6 @@ func (outputReader *OutputReader) Read(buffer []byte) (int, error) {
 	}
 
 	outputReader.readIndex += int64(bytesRead)
-
-	contentLength, isClosed := outputReader.output.Wait(outputReader.readIndex)
-	if isClosed && contentLength == outputReader.readIndex {
-		return bytesRead, io.EOF
-	}
 
 	return bytesRead, nil
 }
