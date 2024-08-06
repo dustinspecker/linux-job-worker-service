@@ -88,14 +88,10 @@ func (ob *Output) Wait(nextByteIndex int64) {
 		return
 	}
 
-	// Not using a for loop here since Wait will only return once the
-	// output is either closed or new content is written.
-	// It is not possible for the output to be re-opened or content to be removed, so
-	// a for loop is not necessary around the Wait.
-	// If the above assumptions ever change then a for loop should be added
-	// and closed and contentLength should be re-checked on each iteration.
 	ob.mutex.Lock()
-	ob.waitCondition.Wait()
+	for !ob.isClosed && nextByteIndex >= int64(len(ob.content)) {
+		ob.waitCondition.Wait()
+	}
 	ob.mutex.Unlock()
 }
 
