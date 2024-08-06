@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+option go_package = "github.com/dustinspecker/linux-job-worker-service/internal/proto";
+
+package jobworker;
+
+service JobWorker {
+  rpc Start(JobStartRequest) returns (Job) {}
+  rpc Query(Job) returns (JobStatus) {}
+  rpc Stream(Job) returns (stream Output) {}
+  rpc Stop(Job) returns (JobStopResponse) {}
+}
+
+message Job {
+  string id = 1;
+}
+
+message JobStartRequest {
+  double cpu = 1;
+  int64 mem_bytes = 2;
+  int64 io_bytes_per_second = 3;
+  string command = 4;
+  repeated string args = 5;
+}
+
+message JobStatus {
+  string status = 1;
+  int32 exit_code = 2;
+  string exit_reason = 3;
+}
+
+message Output {
+  bytes content = 1;
+}
+
+message JobStopResponse {}
