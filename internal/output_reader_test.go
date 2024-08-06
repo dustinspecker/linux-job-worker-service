@@ -71,7 +71,7 @@ func TestOutputReaderReadReturnsFullContent(t *testing.T) {
 	}
 
 	if string(buffer[0:bytesRead]) != "lo" {
-		t.Errorf("Expected %q since Read should return rest of the content, got %q", "ohel", string(buffer))
+		t.Errorf("Expected %q since Read should return rest of the content, got %q", "lo", string(buffer))
 	}
 }
 
