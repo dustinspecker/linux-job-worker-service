@@ -28,15 +28,26 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
+	"os"
 
+	"github.com/dustinspecker/linux-job-worker-service/pkg/executor"
 	"github.com/dustinspecker/linux-job-worker-service/pkg/job"
 )
 
 func main() {
+	if len(os.Args) > 3 && os.Args[1] == "run" {
+		err := executor.Run(os.Args[2], os.Args[3:])
+		if err != nil {
+			log.Fatalf("error running command: %v", err)
+		}
+		return
+	}
+
 	// create a job config
 	config := job.Config{
-		RootPhysicalDeviceMajMin: "259:1",                 // example of how to find this value is in the Development section
-		JobExecutorPath:          "/path/to/job-executor", // such as the binary built from ./cmd/job-executor/
+		RootPhysicalDeviceMajMin: "259:1",          // example of how to find this value is in the Development section
+		JobExecutorPath:          "/proc/self/exe", // this will re-run the same executable but as `<exe> run command arguments
 		Command:                  "echo",
 		Arguments:                []string{"Hello, World!"},
 		IOInBytes:                10_000_000,  // 10 MB read/write limit on the physical RootDeviceMajorMinor device
@@ -70,6 +81,10 @@ func main() {
 	fmt.Printf("exit code: %d", status.ExitCode)
 }
 ```
+
+Note: it is important that the application supports running `executor.Run` when the program is executed
+as `<exe> run command arguments`. The job library will re-execute the program with `run` when the job
+configuration is told to use `/proc/self/exe` as the `JobExecutorPath`.
 
 ## Development
 
