@@ -42,7 +42,7 @@ func (outputReader *OutputReader) Read(buffer []byte) (int, error) {
 	if bytesRead == 0 {
 		outputReader.output.Wait(outputReader.readIndex)
 
-		bytesRead, err := outputReader.output.ReadPartial(buffer, outputReader.readIndex)
+		bytesRead, err = outputReader.output.ReadPartial(buffer, outputReader.readIndex)
 		if err != nil {
 			return bytesRead, err
 		}

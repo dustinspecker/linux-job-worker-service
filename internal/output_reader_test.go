@@ -5,6 +5,7 @@ import (
 	"io"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/dustinspecker/linux-job-worker-service/internal"
 )
@@ -90,14 +91,37 @@ func TestOutputReaderGetsNewContentAsWritten(t *testing.T) {
 
 			outputReader := internal.NewOutputReader(output)
 
-			fullContent, err := io.ReadAll(outputReader)
-			if err != nil {
-				t.Errorf("Expected no error reading content, got %v", err)
+			var chunksRead []string
+
+			for {
+				buffer := make([]byte, 10)
+
+				bytesRead, err := outputReader.Read(buffer)
+				if err != nil && !errors.Is(err, io.EOF) {
+					t.Errorf("Expected no error reading content, got %v", err)
+				}
+
+				if bytesRead == 0 && !errors.Is(err, io.EOF) {
+					// bytesRead should only be zero if not bytes are available to read
+					// and output is closed
+					t.Error("Expected EOF when zero bytes read. Read should not return with zero bytes read otherwise.")
+				}
+
+				if bytesRead != 0 {
+					chunksRead = append(chunksRead, string(buffer[0:bytesRead]))
+				}
+
+				if errors.Is(err, io.EOF) {
+					break
+				}
 			}
 
-			expectedContent := "helloworldtest"
-			if string(fullContent) != expectedContent {
-				t.Errorf("Expected %q, got %q", expectedContent, string(fullContent))
+			if len(chunksRead) == 3 {
+				if chunksRead[0] != "hello" || chunksRead[1] != "world" || chunksRead[2] != "test" {
+					t.Errorf("Expected %q, %q, %q, got %q, %q, %q", "hello", "world", "test", chunksRead[0], chunksRead[1], chunksRead[2])
+				}
+			} else {
+				t.Errorf("Expected 3 chunks read, got %d", len(chunksRead))
 			}
 		}()
 	}
@@ -112,6 +136,9 @@ func TestOutputReaderGetsNewContentAsWritten(t *testing.T) {
 			if err != nil {
 				t.Errorf("Expected no error writing content, got %v", err)
 			}
+
+			// sleep to prove readers get content as it is written
+			time.Sleep(10 * time.Millisecond)
 		}
 
 		err := output.Close()
