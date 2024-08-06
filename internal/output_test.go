@@ -146,6 +146,8 @@ func TestReadPartialReturnsEOFWhenClosed(t *testing.T) {
 }
 
 func TestConcurrentReadWrites(t *testing.T) {
+	// This test case is to help verify a mutex is being used when race detector is enabled for test cases using -race.
+	// TODO: call t.Skip if -race is enabled
 	t.Parallel()
 
 	output := internal.NewOutput()
