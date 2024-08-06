@@ -75,6 +75,9 @@ func main() {
 		log.Fatalf("failed to get server creds: %v", err)
 	}
 
+	// TODO/future consideration: handle server shutdown gracefully
+	//   If server binary receives SIGTERM, it should stop accepting new connections and wait for existing connections to finish using grpcServer.GracefulStop()
+	//   Server could stop all running jobs as well, so that running jobs can gracefully shutdown
 	grpcServer := grpc.NewServer(
 		grpc.Creds(tlsCreds),
 	)
