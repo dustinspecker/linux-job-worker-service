@@ -12,6 +12,7 @@ lint:
 		--disable execinquery \
 		--disable exhaustruct \
 		--disable funlen \
+		--disable gocognit \
 		--disable godox \
 		--disable gomnd \
 		--disable gosec \
