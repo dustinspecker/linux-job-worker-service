@@ -102,7 +102,7 @@ func TestOutputReaderGetsNewContentAsWritten(t *testing.T) {
 				}
 
 				if bytesRead == 0 && !errors.Is(err, io.EOF) {
-					// bytesRead should only be zero if not bytes are available to read
+					// bytesRead should only be zero if no bytes are available to read
 					// and output is closed
 					t.Error("Expected EOF when zero bytes read. Read should not return with zero bytes read otherwise.")
 				}
