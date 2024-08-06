@@ -19,6 +19,7 @@ lint:
 		--disable godox \
 		--disable gomnd \
 		--disable gosec \
+		--disable ireturn \
 		--disable lll \
 		--disable mnd \
 		--disable stylecheck \
