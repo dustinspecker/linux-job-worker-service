@@ -270,6 +270,12 @@ configuration is told to use `/proc/self/exe` as the `JobExecutorPath`.
    make certs
    ```
 
+1. Run the server via:
+
+   ```bash
+   sudo ./bin/server -root-physical 259:1
+   ```
+
 1. Run integration tests via
 
    ```bash
