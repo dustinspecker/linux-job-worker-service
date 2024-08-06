@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := all
 
-all: lint test-unit build certs
+all: lint proto test-unit build certs
 
 build:
 	go build -o bin/ ./...
@@ -25,6 +25,14 @@ lint:
 		--enable-all \
 		./...
 
+proto:
+	protoc \
+		--go_out=. \
+		--go_opt=paths=source_relative \
+		--go-grpc_out=. \
+		--go-grpc_opt=paths=source_relative \
+		internal/proto/job_worker_service.proto
+
 test-integration: build
 	go test \
 		-race \
@@ -38,4 +46,4 @@ test-unit:
 		-shuffle on \
 		$(shell go list ./... | grep --invert integration)
 
-.PHONY: all build certs lint test-integration test-unit
+.PHONY: all build certs lint proto test-integration test-unit
