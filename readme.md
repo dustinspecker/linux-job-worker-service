@@ -151,6 +151,12 @@ configuration is told to use `/proc/self/exe` as the `JobExecutorPath`.
 
    Find the MAJ:MIN of the disk type that `/` is mounted on. In the above output, `259:1` is the MAJ:MIN of the disk that `/` is mounted on.
 
+1. Generate certificates via:
+
+   ```bash
+   make certs
+   ```
+
 1. Run integration tests via
 
    ```bash

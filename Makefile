@@ -1,9 +1,12 @@
 .DEFAULT_GOAL := all
 
-all: lint test-unit build
+all: lint test-unit build certs
 
 build:
 	go build -o bin/ ./...
+
+certs:
+	./scripts/make-certificates.sh
 
 lint:
 	golangci-lint run \
@@ -35,4 +38,4 @@ test-unit:
 		-shuffle on \
 		$(shell go list ./... | grep --invert integration)
 
-.PHONY: all build lint test-integration test-unit
+.PHONY: all build certs lint test-integration test-unit
