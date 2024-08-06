@@ -277,7 +277,7 @@ func TestIOLimits(t *testing.T) {
 		RootPhysicalDeviceMajMin: getMajMinForRootDevice(t),
 		JobExecutorPath:          filepath.Join(cwd, "..", "..", "bin", "job-executor"),
 		Command:                  "dd",
-		Arguments:                []string{"if=/dev/zero", "of=/tmp/file1", "bs=10M", "count=1"},
+		Arguments:                []string{"if=/dev/zero", "of=/tmp/file1", "bs=64M", "count=1", "oflag=direct"},
 		CPU:                      0.5,           // half a CPU core
 		IOInBytes:                10_000_000,    // 10 MB/s
 		MemoryInBytes:            1_000_000_000, // 1 GB
@@ -298,7 +298,7 @@ func TestIOLimits(t *testing.T) {
 	}
 
 	// TODO: this test hasn't appeared flaky yet, but there's probably a better way to validate the output/IO limit
-	expectedIOLimitOutput := "(10 MB, 10 MiB) copied"
+	expectedIOLimitOutput := "10.0 MB/s"
 	if !strings.Contains(string(output), expectedIOLimitOutput) {
 		t.Errorf("expected output to contain %q, got %q", expectedIOLimitOutput, output)
 	}
