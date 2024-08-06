@@ -56,7 +56,10 @@ func (ob *Output) Write(newContent []byte) (int, error) {
 // ReadPartial copies content from the Output to buffer starting at the given offset.
 // ReadPartial is similar to io.ReaderAt but ReadPartial does not block if less bytes are available than requested.
 func (ob *Output) ReadPartial(buffer []byte, off int64) (int, error) {
-	content := ob.Content()
+	ob.mutex.RLock()
+	defer ob.mutex.RUnlock()
+
+	content := ob.content
 
 	if off > int64(len(content)) {
 		return 0, ErrOffsetOutsideContentBounds
@@ -64,7 +67,7 @@ func (ob *Output) ReadPartial(buffer []byte, off int64) (int, error) {
 
 	bytesCopied := copy(buffer, content[off:])
 
-	if bytesCopied+int(off) == len(content) && ob.Closed() {
+	if bytesCopied+int(off) == len(content) && ob.isClosed {
 		return bytesCopied, io.EOF
 	}
 
@@ -73,27 +76,27 @@ func (ob *Output) ReadPartial(buffer []byte, off int64) (int, error) {
 
 // Wait blocks until new content is written to the Output or the Output is closed.
 func (ob *Output) Wait(nextByteIndex int64) {
-	for !ob.Closed() && int64(len(ob.Content())) == nextByteIndex {
-		ob.mutex.Lock()
-		ob.waitCondition.Wait()
-		ob.mutex.Unlock()
+	ob.mutex.RLock()
+
+	closed := ob.isClosed
+	contentLength := int64(len(ob.content))
+
+	ob.mutex.RUnlock()
+
+	// only wait for changes if the output is open or the content contains the next byte to read already
+	if closed || contentLength > nextByteIndex {
+		return
 	}
-}
 
-// Content returns the content of the Output in a thread-safe way.
-func (ob *Output) Content() []byte {
-	ob.mutex.RLock()
-	defer ob.mutex.RUnlock()
-
-	return ob.content
-}
-
-// Closed returns true if the Output is closed in a thread-safe way.
-func (ob *Output) Closed() bool {
-	ob.mutex.RLock()
-	defer ob.mutex.RUnlock()
-
-	return ob.isClosed
+	// Not using a for loop here since Wait will only return once the
+	// output is either closed or new content is written.
+	// It is not possible for the output to be re-opened or content to be removed, so
+	// a for loop is not necessary around the Wait.
+	// If the above assumptions ever change then a for loop should be added
+	// and closed and contentLength should be re-checked on each iteration.
+	ob.mutex.Lock()
+	ob.waitCondition.Wait()
+	ob.mutex.Unlock()
 }
 
 // Close closes the Output preventing any further writes.
