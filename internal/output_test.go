@@ -41,7 +41,7 @@ func TestOutputBufferWriteErrorsWhenClosed(t *testing.T) {
 	}
 }
 
-func TestOutputBufferReadAt(t *testing.T) {
+func TestOutputBufferReadPartial(t *testing.T) {
 	t.Parallel()
 
 	output := internal.NewOutput()
@@ -84,7 +84,7 @@ func TestOutputBufferReadAt(t *testing.T) {
 
 	bytesRead, err = output.ReadPartial(buffer, 2)
 	if err != nil {
-		t.Fatalf("Expected no error calling ReadAt, got %v", err)
+		t.Fatalf("Expected no error calling ReadPartial, got %v", err)
 	}
 
 	if bytesRead != 5 {
@@ -97,7 +97,7 @@ func TestOutputBufferReadAt(t *testing.T) {
 	}
 }
 
-func TestReadAtReturnsEOFWhenClosed(t *testing.T) {
+func TestReadPartialReturnsEOFWhenClosed(t *testing.T) {
 	t.Parallel()
 
 	output := internal.NewOutput()
@@ -117,7 +117,7 @@ func TestReadAtReturnsEOFWhenClosed(t *testing.T) {
 
 	bytesRead, err := output.ReadPartial(buffer, 0)
 	if err == nil {
-		t.Fatalf("Expected error calling ReadAt, got nil")
+		t.Fatalf("Expected error calling ReadPartial, got nil")
 	}
 
 	if bytesRead != 4 {
@@ -133,7 +133,7 @@ func TestReadAtReturnsEOFWhenClosed(t *testing.T) {
 
 	bytesRead, err = output.ReadPartial(smallBuffer, 0)
 	if err != nil {
-		t.Fatalf("Expected no error calling ReadAt, got %v", err)
+		t.Fatalf("Expected no error calling ReadPartial, got %v", err)
 	}
 
 	if bytesRead != 2 {
@@ -175,7 +175,7 @@ func TestConcurrentReadWrites(t *testing.T) {
 
 			_, err := output.ReadPartial(buffer, 0)
 			if err != nil {
-				t.Errorf("Expected no error calling ReadAt, got %v", err)
+				t.Errorf("Expected no error calling ReadPartial, got %v", err)
 			}
 		}()
 	}
