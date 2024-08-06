@@ -18,7 +18,119 @@ to other processes running on the system, the job is run in an isolated manner. 
 go get github.com/dustinspecker/linux-job-worker-service
 ```
 
-## Usage
+## Running the server and client
+
+1. Install [Go](https://golang.org/doc/install)
+1. Build the server and client binaries via:
+
+   ```bash
+   make build
+   ```
+
+1. Generate certificates via:
+
+   ```bash
+   make certs
+   ```
+
+1. Find the physical device Major/Minor of where `/` is mounted by running:
+
+   ```bash
+   lsblk
+   ```
+
+   example output:
+
+   ```
+   NAME        MAJ:MIN RM   SIZE RO TYPE MOUNTPOINTS
+   loop0         7:0    0     4K  1 loop /snap/bare/5
+   loop1         7:1    0  63.9M  1 loop /snap/core20/2318
+   loop2         7:2    0  74.2M  1 loop /snap/core22/1380
+   loop3         7:3    0 268.9M  1 loop /snap/firefox/4630
+   loop4         7:4    0 268.4M  1 loop /snap/firefox/4650
+   loop5         7:5    0  10.7M  1 loop /snap/firmware-updater/127
+   loop6         7:6    0 349.7M  1 loop /snap/gnome-3-38-2004/143
+   loop7         7:7    0 505.1M  1 loop /snap/gnome-42-2204/176
+   loop8         7:8    0  91.7M  1 loop /snap/gtk-common-themes/1535
+   loop9         7:9    0  10.4M  1 loop /snap/snap-store/1147
+   loop10        7:10   0  10.5M  1 loop /snap/snap-store/1173
+   loop11        7:11   0  38.7M  1 loop /snap/snapd/21465
+   loop12        7:12   0  38.8M  1 loop /snap/snapd/21759
+   loop13        7:13   0   476K  1 loop /snap/snapd-desktop-integration/157
+   loop14        7:14   0 183.7M  1 loop /snap/spotify/77
+   loop15        7:15   0 181.8M  1 loop /snap/spotify/78
+   sr0          11:0    1  86.3M  0 rom
+   nvme0n1     259:0    0 931.5G  0 disk
+   ├─nvme0n1p1 259:2    0   100M  0 part
+   ├─nvme0n1p2 259:3    0    16M  0 part
+   ├─nvme0n1p3 259:4    0 930.7G  0 part
+   └─nvme0n1p4 259:5    0   749M  0 part
+   nvme1n1     259:1    0 931.5G  0 disk
+   ├─nvme1n1p1 259:6    0     1G  0 part /boot/efi
+   └─nvme1n1p2 259:7    0 930.5G  0 part /var/snap/firefox/common/host-hunspell
+                                         /
+   nvme2n1     259:8    0   1.8T  0 disk
+   ├─nvme2n1p1 259:9    0    16M  0 part
+   └─nvme2n1p2 259:10   0   1.8T  0 part
+   ```
+
+   Find the MAJ:MIN of the disk type that `/` is mounted on. In the above output, `259:1` is the MAJ:MIN of the disk that `/` is mounted on.
+
+1. Start the server via:
+
+   ```bash
+   sudo ./bin/server -root-physical 259:1
+   ```
+
+1. Start a job by running:
+
+   ```bash
+   ./bin/client start -cpu 1 -memory 1000000000 -io 10000000 echo Hello World!
+   ```
+
+   The output will look something like:
+
+   ```
+   job id: <uuid>
+   ```
+
+   Take note of the UUID as it can be used to get the job's status and output. As well as stopping the job.
+
+1. Get the job's combined stderr/stdout via:
+
+   ```bash
+   ./bin/client stream <uuid>
+   ```
+
+   The output will look something like:
+
+   ```
+   Hello World!
+   ```
+
+   Note: `stream` will print until the job completes or the user interrupts the command.
+
+1. Get the job's status via:
+
+   ```bash
+   ./bin/client status <uuid>
+   ```
+
+   The output will look something like:
+
+   ```
+   status: completed
+   exit code: 0
+   exit reason:
+   ```
+
+1. Long running jobs can be stopped via:
+
+   ```bash
+   ./bin/client stop <uuid>
+   ```
+
+## Library usage
 
 An example to run a job that echoes "Hello, World!":
 
