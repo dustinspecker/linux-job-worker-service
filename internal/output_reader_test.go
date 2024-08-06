@@ -107,21 +107,24 @@ func TestOutputReaderGetsNewContentAsWritten(t *testing.T) {
 					t.Error("Expected EOF when zero bytes read. Read should not return with zero bytes read otherwise.")
 				}
 
-				if bytesRead != 0 {
-					chunksRead = append(chunksRead, string(buffer[0:bytesRead]))
-				}
+				chunksRead = append(chunksRead, string(buffer[0:bytesRead]))
 
 				if errors.Is(err, io.EOF) {
 					break
 				}
 			}
 
-			if len(chunksRead) == 3 {
-				if chunksRead[0] != "hello" || chunksRead[1] != "world" || chunksRead[2] != "test" {
-					t.Errorf("Expected %q, %q, %q, got %q, %q, %q", "hello", "world", "test", chunksRead[0], chunksRead[1], chunksRead[2])
+			// validate 4 chunks are returned by read
+			// hello
+			// world
+			// test
+			// (empty) EOF
+			if len(chunksRead) == 4 {
+				if chunksRead[0] != "hello" || chunksRead[1] != "world" || chunksRead[2] != "test" || chunksRead[3] != "" {
+					t.Errorf("Expected %q, %q, %q, %q, got %q, %q, %q, %q", "hello", "world", "test", "", chunksRead[0], chunksRead[1], chunksRead[2], chunksRead[3])
 				}
 			} else {
-				t.Errorf("Expected 3 chunks read, got %d", len(chunksRead))
+				t.Errorf("Expected 4 chunks read, got %d", len(chunksRead))
 			}
 		}()
 	}
