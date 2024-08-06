@@ -112,11 +112,36 @@ func TestReadAtReturnsEOFWhenClosed(t *testing.T) {
 		t.Fatalf("Expected no error calling Close, got %v", err)
 	}
 
+	// validate buffer large enough to contain content gets EOF
 	buffer := make([]byte, 5)
 
-	_, err = output.ReadPartial(buffer, 0)
+	bytesRead, err := output.ReadPartial(buffer, 0)
 	if err == nil {
 		t.Fatalf("Expected error calling ReadAt, got nil")
+	}
+
+	if bytesRead != 4 {
+		t.Errorf("Expected 4 bytes read to read all of test, got %d", bytesRead)
+	}
+
+	if string(buffer[0:bytesRead]) != "test" {
+		t.Errorf("Expected buffer to include 'test', got %q", buffer[0:bytesRead])
+	}
+
+	// validate small buffer does not get EOF when not reading all content
+	smallBuffer := make([]byte, 2)
+
+	bytesRead, err = output.ReadPartial(smallBuffer, 0)
+	if err != nil {
+		t.Fatalf("Expected no error calling ReadAt, got %v", err)
+	}
+
+	if bytesRead != 2 {
+		t.Errorf("Expected 2 bytes read to read part of test, got %d", bytesRead)
+	}
+
+	if string(smallBuffer[0:bytesRead]) != "te" {
+		t.Errorf("Expected smallBuffer to include 'te', got %q", smallBuffer[0:bytesRead])
 	}
 }
 
