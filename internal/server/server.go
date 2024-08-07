@@ -147,9 +147,9 @@ func (s *JobWorkerServer) Stream(protoJob *proto.Job, stream proto.JobWorker_Str
 	jobOutput := job.job.Stream()
 	s.mutex.Unlock()
 
-	for {
-		buffer := make([]byte, 1024)
+	buffer := make([]byte, 1024)
 
+	for {
 		bytesRead, err := jobOutput.Read(buffer)
 		if err != nil {
 			if !errors.Is(err, io.EOF) {
