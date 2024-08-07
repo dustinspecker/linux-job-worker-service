@@ -180,26 +180,34 @@ func (s *JobWorkerServer) Stream(protoJob *proto.Job, stream proto.JobWorker_Str
 // Stop stops the job. Users may not stop jobs started by other users.
 func (s *JobWorkerServer) Stop(ctx context.Context, protoJob *proto.Job) (*proto.JobStopResponse, error) {
 	s.mutex.Lock()
-	defer s.mutex.Unlock()
 
 	jobID := protoJob.GetId()
 
-	job, ok := s.userJobs[jobID]
+	userJob, ok := s.userJobs[jobID]
 	if !ok {
+		s.mutex.Unlock()
+
 		return nil, ErrJobNotFound
 	}
 
 	user, err := tls.GetUserFromContext(ctx)
 	if err != nil {
+		s.mutex.Unlock()
+
 		return nil, fmt.Errorf("failed to get user from certificate: %w", err)
 	}
 
-	if user != job.user {
+	if user != userJob.user {
+		s.mutex.Unlock()
+
 		// TODO: consider returning Not Found instead of Permission Denied to hide job existence
 		return nil, ErrUserUnauthorized
 	}
 
-	if err := job.job.Stop(); err != nil {
+	job := userJob.job
+	s.mutex.Unlock()
+
+	if err := job.Stop(); err != nil {
 		return nil, fmt.Errorf("error stopping job: %w", err)
 	}
 
